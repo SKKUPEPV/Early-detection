@@ -205,9 +205,9 @@
 		create table preprocessing_&year._cum as
 		select distinct a.*, b.*, c.*, d.*, e.*
 		from demo_&year._cum as a inner join drug_&year._cum as b on a0.primaryid = b.primaryid AND a.caseid = b.caseid;
-													      left join reac_&year._cum as c on a.primaryid = c.primaryid AND c.caseid = b.caseid;
-														  left join outc&year._cum as d on a.primaryid = d.primaryid AND a.caseid = d.caseid;
-														  left join rpsr&year._cum as e on a.primaryid = e.primaryid AND a.caseid = e.caseid
+					  left join reac_&year._cum as c on a.primaryid = c.primaryid AND a.caseid = c.caseid;
+					  left join outc&year._cum as d on a.primaryid = d.primaryid AND a.caseid = d.caseid;
+					  left join rpsr&year._cum as e on a.primaryid = e.primaryid AND a.caseid = e.caseid
 		order by primaryid;
 		quit;
 
@@ -350,9 +350,11 @@
 	select distinct pt, 
 					  sum(SAE_Y) as SAE_Y1, sum(SAE_N) as SAE_N1,
 					  sum(sex_unknown) as sex_unknown1, sum(male) as male1, sum(female) as female1, 
-					  sum(age_unknown) as age_unknown1, sum(age1) as age11, sum(age2) as age21, sum(age3) as age31,sum(age4) as age41, sum(age5) as age51, sum(age6) as age61, sum(age7) as age71,
+					  sum(age_unknown) as age_unknown1, sum(age1) as age11, sum(age2) as age21, sum(age3) as age31,
+					  sum(age4) as age41, sum(age5) as age51, sum(age6) as age61, sum(age7) as age71,
 					  sum(occu_unknown) as occu_unknown1, sum(occu1) as occu11, sum(occu2) as occu21, sum(occu3) as occu31, sum(occu4) as occu41,
-					  sum(rpsr_unknown) as rpsr_unknown1, sum(rpsr1) as rpsr11,  sum(rpsr2) as rpsr21, sum(rpsr3) as rpsr31, sum(rpsr4) as rpsr41, sum(rpsr5) as rpsr51, sum(rpsr6) as rpsr61, sum(rpsr7) as rpsr71, sum(rpsr8) as rpsr81, sum(rpsr9) as rpsr91
+					  sum(rpsr_unknown) as rpsr_unknown1, sum(rpsr1) as rpsr11,  sum(rpsr2) as rpsr21, sum(rpsr3) as rpsr31, 
+					  sum(rpsr4) as rpsr41, sum(rpsr5) as rpsr51, sum(rpsr6) as rpsr61, sum(rpsr7) as rpsr71, sum(rpsr8) as rpsr81, sum(rpsr9) as rpsr91
 	from infliximab_covariate_feature_&year._cum
 	where study_drug eq 1
 	group by pt;
