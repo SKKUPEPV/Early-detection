@@ -86,13 +86,13 @@ print('ROC AUC:{0:.4f}'.format(xgb_roc_score)) #Evaluate the performance in test
 data_detection = pd.read_excel('Unknown ADRs.xlsx') #data_detection = data for detecting safety signals
 data_feature_detection = data_detection.iloc[:,1:34] #Assign feature data for detecting safety signals
 
-preds = xgb.predict_proba(data_feature_detection) #Detecting safety signals by using xgb
-preds_df = pd.DataFrame(preds)
-signal_probability = preds_df.iloc[:,1:2]
-signal_probability.to_excel('Data storage location/safety signals.xlsx') #Export the result of signal detection
-Safety_signals = (signal_probability >= optimal threshold).astype('int')
-Safety_signals_df = pd.DataFrame(Safety_signals)
-Safety_signals_df.to_excel('Data storage location/safety signals.xlsx') #Export the result of signal detection
+preds_gbm = xgb.predict_proba(data_feature_detection) #Detecting safety signals by using xgb
+preds_gbm_df = pd.DataFrame(preds_gbm)
+signal_probability_gbm = preds_df.iloc[:,1:2]
+signal_probability_gbm.to_excel('Data storage location/safety signals.xlsx') #Export the result of signal detection
+Safety_signals_gbm = (signal_probability_gbm >= optimal threshold).astype('int')
+Safety_signals_gbm_df = pd.DataFrame(Safety_signals_gbm)
+Safety_signals_gbm_df.to_excel('Data storage location/safety signals.xlsx') #Export the result of signal detection
 
 
 # ## Generating signal detection model_RF
@@ -132,10 +132,10 @@ print('ROC AUC:{0:.4f}'.format(rf_roc_score)) #Evaluate the performance in test 
 data_detection = pd.read_excel('Unknown ADRs.xlsx') #data_detection = data for detecting safety signals
 data_feature_detection = data_detection.iloc[:,1:34] #Assign feature data for detecting safety signals
 
-preds = rf.predict_proba(data_feature_detection) #Detecting safety signals by using xgb
-preds_df = pd.DataFrame(preds)
-signal_probability = preds_df.iloc[:,1:2]
-signal_probability.to_excel('Data storage location/safety signals.xlsx') #Export the result of signal detection
-Safety_signals = (signal_probability >= optimal threshold).astype('int')
-Safety_signals_df = pd.DataFrame(Safety_signals)
-Safety_signals_df.to_excel('Data storage location/safety signals.xlsx') #Export the result of signal detection
+preds_rf = rf.predict_proba(data_feature_detection) #Detecting safety signals by using xgb
+preds_rf_df = pd.DataFrame(preds_rf)
+signal_probability_rf = preds_df.iloc[:,1:2]
+signal_probability_rf.to_excel('Data storage location/safety signals.xlsx') #Export the result of signal detection
+Safety_signals_rf = (signal_probability_rf >= optimal threshold).astype('int')
+Safety_signals_rf_df = pd.DataFrame(Safety_signals_rf)
+Safety_signals_rf_df.to_excel('Data storage location/safety signals.xlsx') #Export the result of signal detection
