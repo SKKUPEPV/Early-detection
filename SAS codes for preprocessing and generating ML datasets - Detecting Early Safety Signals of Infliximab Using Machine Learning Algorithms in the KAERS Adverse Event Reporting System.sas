@@ -1,9 +1,9 @@
 /*Raw data*/
 libname a "Data storage";
 
-/* Step1: Cleaning the Korean Adverse Event Reporting */
+/*---Step1: Cleaning the Korean Adverse Event Reporting---*/
 
-/*---Keep the latest adverse event reports---*/
+/*Step1-1: Keep the latest adverse event reports*/
 /*Group table presents the information on initial and follow-up reports*/
 
 data group1;
@@ -20,34 +20,29 @@ run;
 proc sql;
 	create table latest_report as
 	select distinct kd_no
-	from (select distinct *, max(seq_num) as latest_report 
-			/*The maximum value of seq_num means the latest report*/
-			 from group1
-			 group by group_num) 
-			 /*The packages for initial and follow-up reports are presented by group_num
-				ex) No. of initial report = 1111, No. of follow-up#1 report for that case = 2222, 
-			 		  No. of follow-up#2 report for that case = 3333
-				This information is presented as
-					Initial report : Kd_no = 1111, group_num = 1111, seq = 1
-			 		Follow-up#1 report: Kd_no = 2222, group_num = 1111, seq = 2
-			 		Follow-up#2 report: Kd_no = 3333, group_num = 1111, seq = 3*/
-	where seq_num = latest_report and trc_rpt_rsn_cd_num ^= 4
-			/*Keep the latest report*/      /*The value of 4 for trc_rpt_rsn_cd_num means a nullification of report*/  
+	from (select distinct *, max(seq_num) as latest_report /*The maximum value of seq_num means the latest report*/
+	      from group1
+	      group by group_num) /*The packages for initial and follow-up reports are presented by group_num
+				  ex) No. of initial report = 1111, No. of follow-up#1 report for that case = 2222, No. of follow-up#2 report for that case = 3333
+				      This information is presented as
+				      Initial report : Kd_no = 1111, group_num = 1111, seq = 1
+			 	      Follow-up#1 report: Kd_no = 2222, group_num = 1111, seq = 2
+			 	      Follow-up#2 report: Kd_no = 3333, group_num = 1111, seq = 3*/
+	where seq_num = latest_report and trc_rpt_rsn_cd_num ^= 4 /*Keep the latest report*//*The value of 4 for trc_rpt_rsn_cd_num means a nullification of report*/  
 	order by kd_no;
 quit;
 
-/*---Delete the incorrect adverse event---*/
+/*Step1-2: Delete the incorrect adverse event*/
 /*drug_info_adr table presents the information on suspected or comcomitant drugs*/
 /*adr_info_report table presents the information on reported adverse events*/
 
 proc sql;
 	create table drug_adverse_event_pair as
 	select distinct *
-	from (select distinct a.kd_no, a.doubt_cmbt_csf, a.drug_chem, a.dose_str_dt,
-						  		    b.whoart_arrn, b.whoart_seq, b.rvln_dt
-									from a.drug_info_adr as a inner join a.adr_info_report as b on a.kd_no = b.kd_no
-									where a.doubt_cmbt_csf = 1)
-									/*The value of 1 for doubt_cmbt_csf means the suspected drug*/
+	from (select distinct a.kd_no, a.doubt_cmbt_csf, a.drug_chem, a.dose_str_dt, b.whoart_arrn, b.whoart_seq, b.rvln_dt
+	      from a.drug_info_adr as a inner join a.adr_info_report as b on a.kd_no = b.kd_no
+	      where a.doubt_cmbt_csf = 1)
+	      /*The value of 1 for doubt_cmbt_csf means the suspected drug*/
 	where dose_str_dt <= rvln_dt
 	/*dose_str_dt variable means the start date of medication*/
 	/*rvln_dt variable means the start date of adverse events*/
@@ -55,11 +50,9 @@ proc sql;
 	order by kd_no;
 quit;
 
-
-/*---Handle the missing value and variables in adr_report_basic and reportor_adr tables---*/
-/*adr_report_basic table presents information on charateristics of patients, reports, 
-seriousness of adverse events*/
-
+/*Step1-3: Handle the missing value and variables in adr_report_basic and reportor_adr tables*/
+/*adr_report_basic table presents information on charateristics of patients, reports, seriousness of adverse events*/
+ 
  data adr_report_basic;
  	set a.adr_report_basic;
 
@@ -101,7 +94,6 @@ seriousness of adverse events*/
 
 	keep kd_no year crtcl_case_yn rpt_csf_num ptnt_sex_num agg;
 	/*Keep required variables*/
-
 run;
 
 /*adr_report_basic table presents information on charateristics of reporters*/
@@ -139,24 +131,24 @@ data reportor_adr;
 
 	keep kd_no qualy_csf_num qualy_csf_1_num;
 	/*Keep required variables*/
-
 run;
 
 /*Step2: Generate the database for analysis*/
 
 /*Merge required tables*/
+
 proc sql;
 	create table analysis_DB as
-	select distinct a.kd_no, b.drug_chem, b.whoart_arrn, b.whoart_seq,
-						   c.*, d.*
+	select distinct a.kd_no, b.drug_chem, b.whoart_arrn, b.whoart_seq, c.*, d.*
 	from latest_report as a inner join drug_adverse_event_pair as b on a.kd_no=b.kd_no
-										inner join adr_report_basic as c on a.kd_no = c.kd_no
-										inner join reportor_adr as d on a.kd_no = d.kd_no
+				inner join adr_report_basic as c on a.kd_no = c.kd_no
+				inner join reportor_adr as d on a.kd_no = d.kd_no
 	order by a.kd_no;
 quit; 
 
 
 /*Keep information on study drug (Infliximab) and comparator (Methotrexate)*/
+
 data analysis_study;
 	set analysis_DB;
 	if substr(drug_chem,1,10) = 'infliximab' or substr(drug_chem,1,12) = 'methotrexate';
@@ -168,6 +160,7 @@ run;
 
 /*Step3: Generate the database for implementing machine learning algorithms*/
 /*Step3-1: Statistical feature*/
+
 proc sql;
 	create table stat_feature_preprocessing as
 	select distinct a.*, b.c, b.d, max(m) as m1
@@ -253,23 +246,21 @@ data covariate_feature_preprocessing;
 	%covariate(qualy_csf_1_num,5);
 	%covariate(qualy_csf_1_num,6);
 
-
 	drop year -- qualy_csf_1_num;
-
 run;
 
 
 proc sql;
 	create table covariate_feature as
 	select distinct whoart_arrn, 
-						 sum(agg0) as unknown_agegroup, sum(agg1) as agegroup_under_20, sum(agg2) as agegroup_20_29, sum(agg3) as agegroup_30_39, sum(agg4) as agegroup_40_49,
-						 sum(agg5) as agegroup_50_59, sum(agg5) as agegroup_60_69, sum(agg5) as agegroup_above_70,
-						 sum(ptnt_sex_num0) as unknown_sex, sum(ptnt_sex_num1) as male, sum(ptnt_sex_num2) as female,
-						 sum(crtcl_case_yn0) as non_serious, sum(crtcl_case_yn1) as serious,
-						 sum(qualy_csf_num0) as unknown_occupation, sum(qualy_csf_num1) as physician, sum(qualy_csf_num2) as pharmacist, sum(qualy_csf_num3) as nurse, sum(qualy_csf_num4) as consumer,
-						 sum(qualy_csf_num5) as other_health_professional, sum(qualy_csf_num6) as other_occupation,
-						 sum(qualy_csf_1_num0) as unknown_affiliation, sum(qualy_csf_1_num1) as RPVC, sum(qualy_csf_1_num2) as manufacturer, sum(qualy_csf_1_num3) as medical_institution,
-						 sum(qualy_csf_1_num4) as pharmacy, sum(qualy_csf_1_num5) as consumer, sum(qualy_csf_1_num6) as other_affiliation
+			sum(agg0) as unknown_agegroup, sum(agg1) as agegroup_under_20, sum(agg2) as agegroup_20_29, sum(agg3) as agegroup_30_39, sum(agg4) as agegroup_40_49,
+			sum(agg5) as agegroup_50_59, sum(agg5) as agegroup_60_69, sum(agg5) as agegroup_above_70,
+			sum(ptnt_sex_num0) as unknown_sex, sum(ptnt_sex_num1) as male, sum(ptnt_sex_num2) as female,
+			sum(crtcl_case_yn0) as non_serious, sum(crtcl_case_yn1) as serious,
+			sum(qualy_csf_num0) as unknown_occupation, sum(qualy_csf_num1) as physician, sum(qualy_csf_num2) as pharmacist, sum(qualy_csf_num3) as nurse, sum(qualy_csf_num4) as consumer,
+			sum(qualy_csf_num5) as other_health_professional, sum(qualy_csf_num6) as other_occupation,
+			sum(qualy_csf_1_num0) as unknown_affiliation, sum(qualy_csf_1_num1) as RPVC, sum(qualy_csf_1_num2) as manufacturer, sum(qualy_csf_1_num3) as medical_institution,
+			sum(qualy_csf_1_num4) as pharmacy, sum(qualy_csf_1_num5) as consumer, sum(qualy_csf_1_num6) as other_affiliation
 	from covariate_feature_preprocessing
 	group by whoart_arrn;
 quit;
@@ -289,16 +280,16 @@ proc sql;
 	create table training_dataset as
 	select distinct a.whoart_arrn, a.label, b.*, c.soc1, d.*
 	from label as a inner join statistical_feature as b on a.whoart_arrn = b.whoart_arrn
-							inner join system_organ_feature as c on a.whoart_arrn = c.arrn_1
-							inner join covariate_feature as d on a.whoart_arrn = d.whoart_arrn
+			inner join system_organ_feature as c on a.whoart_arrn = c.arrn_1
+			inner join covariate_feature as d on a.whoart_arrn = d.whoart_arrn
 	where a.label ^= 2
 	order b.a desc;
 
 	create table prediction_dataset as
 	select distinct a.whoart_arrn, a.label, b.*, c.soc1, d.*
 	from label as a inner join statistical_feature as b on a.whoart_arrn = b.whoart_arrn
-							inner join system_organ_feature as c on a.whoart_arrn = c.arrn
-							inner join covariate_feature as d on a.whoart_arrn = d.whoart_arrn
+			inner join system_organ_feature as c on a.whoart_arrn = c.arrn
+			inner join covariate_feature as d on a.whoart_arrn = d.whoart_arrn
 	where a.label = 2
 	order b.a desc;
 quit;
