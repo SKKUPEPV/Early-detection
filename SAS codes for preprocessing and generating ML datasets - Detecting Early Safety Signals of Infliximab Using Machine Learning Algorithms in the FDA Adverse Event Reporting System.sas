@@ -370,19 +370,36 @@ proc sql;
 	group by pt;
 quit;
 
-/* Merge statistical feature table and covariate feature table*/
+/*Use the WHO-ART ver0.92  for generating system organ feature*/ 
+
+proc import out = system_organ_feature
+	datafile = 'Data storage'
+	DBMS = xlsx replace;
+run;
+
+
+/*Load the constructed label data*/
+
+proc import out = label
+	datafile = 'Data storage'
+	DBMS = xlsx replace;
+	sheet = 'infliximab';
+run;
+
+/* Generate the training dataset for implementing ML algorithms */
 proc sql;
-	create table infliximab_feature as
-	select distinct a.*, b.*
-	from infliximab_statistical as a left join infliximab_covariate as b
-	on a.pt = b.pt
-	order by a desc;
+	create table infliximab_training_set as
+	select distinct a.whoart_arrn, a.label, b.*, c.soc1, d.*
+	from label as a inner join infliximab_statistical as b on a.whoart_arrn = b.pt
+			inner join system_organ_feature as c on a.whoart_arrn = c.whoart_arrn
+			inner join infliximab_covariate as d on a.whoart_arrn = d.pt
+	where a.label ^= 2
+	order by b.a desc;
 quit;
 
 
-
 /* Export to data in excel*/
-proc export data=infliximab_feature
+proc export data=infliximab_training_set
 outfile =  "Data storage location\file name"
 DBMS = xlsx replace;
 run;
