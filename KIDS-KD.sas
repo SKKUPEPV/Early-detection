@@ -1,5 +1,5 @@
 /*Raw data*/
-libname a "D:\¿¬±¸\Early detection\KAERS";
+libname a "Storage of Raw data";
 
 /* Step1: Cleaning the Korean Adverse Event Reporting */
 
@@ -43,11 +43,9 @@ quit;
 proc sql;
 	create table drug_adverse_event_pair as
 	select distinct *
-	from (select distinct a.kd_no, a.doubt_cmbt_csf, a.drug_chem, a.dose_str_dt,
-						  		    b.whoart_arrn, b.whoart_seq, b.rvln_dt
-									from a.drug_info_adr as a inner join a.adr_info_report as b on a.kd_no = b.kd_no
-									where a.doubt_cmbt_csf = 1)
-									/*The value of 1 for doubt_cmbt_csf means the suspected drug*/
+	from (select distinct a.kd_no, a.doubt_cmbt_csf, a.drug_chem, a.dose_str_dt, b.whoart_arrn, b.whoart_seq, b.rvln_dt 
+	      from a.drug_info_adr as a inner join a.adr_info_report as b on a.kd_no = b.kd_no 
+	      where a.doubt_cmbt_csf = 1) /*The value of 1 for doubt_cmbt_csf means the suspected drug*/
 	where dose_str_dt <= rvln_dt
 	/*dose_str_dt variable means the start date of medication*/
 	/*rvln_dt variable means the start date of adverse events*/
@@ -92,7 +90,8 @@ seriousness of adverse events*/
 
 	/*rpt_csf variable presents the type of adverse event reports*/
 	/*It is classified into 1,2,3, and 4*/
-	/*The value of 1,2,3, and 4 in rpt_csf means that it is reported from spontaneous reporting, post-marketing surveillance, literatures, unknown and other sources, respectively*/
+	/*The value of 1,2,3, and 4 in rpt_csf means that it is reported from spontaneous reporting, post-marketing surveillance, literatures, 
+	unknown and other sources, respectively*/
 
 	keep kd_no year crtcl_case_yn rpt_csf_num ptnt_sex_num agg;
 	/*Keep required variables*/
@@ -142,11 +141,10 @@ run;
 /*Merge required tables*/
 proc sql;
 	create table analysis_DB as
-	select distinct a.kd_no, b.drug_chem, b.whoart_arrn, b.whoart_seq,
-						   c.*, d.*
+	select distinct a.kd_no, b.drug_chem, b.whoart_arrn, b.whoart_seq, c.*, d.*
 	from latest_report as a inner join drug_adverse_event_pair as b on a.kd_no=b.kd_no
-										inner join adr_report_basic as c on a.kd_no = c.kd_no
-										inner join reportor_adr as d on a.kd_no = d.kd_no
+				inner join adr_report_basic as c on a.kd_no = c.kd_no
+				inner join reportor_adr as d on a.kd_no = d.kd_no
 	order by a.kd_no;
 quit; 
 
@@ -178,18 +176,18 @@ proc sql;
 	create table stat_feature_preprocessing_&year as
 	select distinct a.*, b.c, b.d, max(m) as m1
 	from (select distinct whoart_arrn, a, n-a as b
-			  from (select distinct whoart_arrn, a, sum(a) as n
-			  			from (select distinct whoart_arrn, count(kd_no) as a
-								 from cumulative_DB_&year
-								 where study_drug = 1
-								 group by whoart_arrn))) as a
-			left join (select distinct whoart_arrn, c, m-c as d, m
-						 from (select distinct whoart_arrn, c, sum(c) as m
-						 		  from (select distinct whoart_arrn, count(kd_no) as c 
-										   from cumulative_DB_&year
-								  		   where study_drug = 0
-								  		   group by whoart_arrn))) as b
-			on a.whoart_arrn = b.whoart_arrn
+	      from (select distinct whoart_arrn, a, sum(a) as n
+		    from (select distinct whoart_arrn, count(kd_no) as a
+			  from cumulative_DB_&year
+			  where study_drug = 1
+			  group by whoart_arrn))) as a
+	left join (select distinct whoart_arrn, c, m-c as d, m
+	           from (select distinct whoart_arrn, c, sum(c) as m
+		         from (select distinct whoart_arrn, count(kd_no) as c 
+			       from cumulative_DB_&year
+			       where study_drug = 0
+			       group by whoart_arrn))) as b
+	on a.whoart_arrn = b.whoart_arrn
 	order by a desc;
 quit;
 /*Variable a means the number of the targeted adverse event reports in the presence of the study drug.*/
@@ -277,16 +275,16 @@ run;
 proc sql;
 	create table covariate_feature_&year as
 	select distinct whoart_arrn, 
-						 sum(agg0) as unknown_agegroup, sum(agg1) as agegroup_under_20, sum(agg2) as agegroup_20_29, sum(agg3) as agegroup_30_39, sum(agg4) as agegroup_40_49,
-						 sum(agg5) as agegroup_50_59, sum(agg5) as agegroup_60_69, sum(agg5) as agegroup_above_70,
-						 sum(ptnt_sex_num0) as unknown_sex, sum(ptnt_sex_num1) as male, sum(ptnt_sex_num2) as female,
-						 sum(crtcl_case_yn0) as non_serious, sum(crtcl_case_yn1) as serious,
-						 sum(rpt_csf_num1) as spontaneous_reporting, sum(rpt_csf_num2) as post_marketing_surveillance, sum(rpt_csf_num3) as literature, sum(rpt_csf_num4) as unknown_report_type, 
-						 sum(rpt_csf_num5) as other_report_type,
-						 sum(qualy_csf_num0) as unknown_occupation, sum(qualy_csf_num1) as physician, sum(qualy_csf_num2) as pharmacist, sum(qualy_csf_num3) as nurse, sum(qualy_csf_num4) as consumer,
-						 sum(qualy_csf_num5) as other_health_professional, sum(qualy_csf_num6) as other_occupation,
-						 sum(qualy_csf_1_num0) as unknown_affiliation, sum(qualy_csf_1_num1) as RPVC, sum(qualy_csf_1_num2) as manufacturer, sum(qualy_csf_1_num3) as medical_institution,
-						 sum(qualy_csf_1_num4) as pharmacy, sum(qualy_csf_1_num5) as consumer, sum(qualy_csf_1_num6) as other_affiliation
+			sum(agg0) as unknown_agegroup, sum(agg1) as agegroup_under_20, sum(agg2) as agegroup_20_29, sum(agg3) as agegroup_30_39, sum(agg4) as agegroup_40_49,
+			sum(agg5) as agegroup_50_59, sum(agg5) as agegroup_60_69, sum(agg5) as agegroup_above_70,
+			sum(ptnt_sex_num0) as unknown_sex, sum(ptnt_sex_num1) as male, sum(ptnt_sex_num2) as female,
+			sum(crtcl_case_yn0) as non_serious, sum(crtcl_case_yn1) as serious,
+			sum(rpt_csf_num1) as spontaneous_reporting, sum(rpt_csf_num2) as post_marketing_surveillance, sum(rpt_csf_num3) as literature, sum(rpt_csf_num4) as unknown_report_type, 
+			sum(rpt_csf_num5) as other_report_type,
+			sum(qualy_csf_num0) as unknown_occupation, sum(qualy_csf_num1) as physician, sum(qualy_csf_num2) as pharmacist, sum(qualy_csf_num3) as nurse, sum(qualy_csf_num4) as consumer,
+			sum(qualy_csf_num5) as other_health_professional, sum(qualy_csf_num6) as other_occupation,
+			sum(qualy_csf_1_num0) as unknown_affiliation, sum(qualy_csf_1_num1) as RPVC, sum(qualy_csf_1_num2) as manufacturer, sum(qualy_csf_1_num3) as medical_institution,
+			sum(qualy_csf_1_num4) as pharmacy, sum(qualy_csf_1_num5) as consumer, sum(qualy_csf_1_num6) as other_affiliation
 	from cov_feature_preprocessing_&year
 	group by whoart_arrn;
 quit;
@@ -306,16 +304,16 @@ proc sql;
 	create table training_dataset_&year as
 	select distinct a.whoart_arrn, a.label, b.*, c.soc1, d.*
 	from label as a inner join statistical_feature_&year as b on a.whoart_arrn = b.whoart_arrn
-							inner join system_organ_feature as c on a.whoart_arrn = c.arrn_1
-							inner join covariate_feature_&year as d on a.whoart_arrn = d.whoart_arrn
+			inner join system_organ_feature as c on a.whoart_arrn = c.arrn_1
+			inner join covariate_feature_&year as d on a.whoart_arrn = d.whoart_arrn
 	where a.label ^= 2
 	order b.a desc;
 
 	create table prediction_dataset_&year as
 	select distinct a.whoart_arrn, a.label, b.*, c.soc1, d.*
 	from label as a inner join statistical_feature_&year as b on a.whoart_arrn = b.whoart_arrn
-							inner join system_organ_feature as c on a.whoart_arrn = c.arrn
-							inner join covariate_feature_&year as d on a.whoart_arrn = d.whoart_arrn
+			inner join system_organ_feature as c on a.whoart_arrn = c.arrn
+			inner join covariate_feature_&year as d on a.whoart_arrn = d.whoart_arrn
 	where a.label = 2
 	order b.a desc;
 quit;
@@ -328,24 +326,3 @@ quit;
 %mend;
 
 %ML_dataset;
-
-
-
-	
-
-	
-
-
-
-
-	
-
-	
-
-
-
-
-
-
-
-
